@@ -716,7 +716,6 @@ class PageKite(object):
     self.fe_certname = []
     self.fe_anon_tls_wrap = False
 
-    self.service_provider = SERVICE_PROVIDER
     self.service_xmlrpc = SERVICE_XMLRPC
 
     self.daemonize = False

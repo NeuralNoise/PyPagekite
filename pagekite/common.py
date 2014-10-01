@@ -34,7 +34,6 @@ MAGIC_PATH = '%sv%s' % (MAGIC_PREFIX, PROTOVER)
 MAGIC_PATHS = (MAGIC_PATH, '/Beanstalk~Magic~Beans/0.2')
 MAGIC_UUID = '%x-%x-%s' % (random.randint(0, 0xfffffff), time.time(), APPVER)
 
-SERVICE_PROVIDER = 'PageKite.net'
 SERVICE_DOMAINS = ('pagekite.me', '302.is', 'testing.is', 'kazz.am')
 SERVICE_XMLRPC = 'http://pagekite.net/xmlrpc/'
 SERVICE_TOS_URL = 'https://pagekite.net/humans.txt'
