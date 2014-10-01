@@ -877,7 +877,6 @@ class PageKite(object):
     self.main_loop = True
     self.watch_level = [None]
 
-    self.crash_report_url = '%scgi-bin/crashes.pl' % WWWHOME
     self.rcfile_recursion = 0
     self.rcfiles_loaded = []
     self.savefile = None
@@ -1223,7 +1222,6 @@ class PageKite(object):
       (self.servers_new_only is True) and 'new' or '# new',
       (self.require_all and 'all' or '# all'),
       (self.no_probes and 'noprobes' or '# noprobes'),
-      (self.crash_report_url and '# nocrashreport' or 'nocrashreport'),
       p('savefile = %s', safe and self.savefile, '/path/to/savefile'),
       '',
     ])
@@ -1845,7 +1843,6 @@ class PageKite(object):
         if opt == '--torify':
           self.servers_new_only = True  # Disable initial DNS lookups (leaks)
           self.servers_no_ping = True   # Disable front-end pings
-          self.crash_report_url = None  # Disable crash reports
 
           # This increases the odds of unrelated requests getting lumped
           # together in the tunnel, which makes traffic analysis harder.
@@ -1924,7 +1921,6 @@ class PageKite(object):
       elif opt == '--debugio':
         logging.DEBUG_IO = True
       elif opt == '--buffers': self.buffer_max = int(arg)
-      elif opt == '--nocrashreport': self.crash_report_url = None
       elif opt == '--noloop': self.main_loop = False
       elif opt == '--local':
         self.SetLocalSettings([int(p) for p in arg.split(',')])
@@ -3283,19 +3279,8 @@ def Main(pagekite, configure, uiclass=NullUi,
         sys.exit(status)
 
     except Exception, msg:
+      # Close system
       traceback.print_exc(file=sys.stderr)
-      if pk.crash_report_url:
-        try:
-          print 'Submitting crash report to %s' % pk.crash_report_url
-          logging.LogDebug(''.join(urllib.urlopen(pk.crash_report_url,
-                                          urllib.urlencode({
-                                            'platform': sys.platform,
-                                            'appver': APPVER,
-                                            'crash': format_exc()
-                                          })).readlines()))
-        except Exception, e:
-          print 'FAILED: %s' % e
-
       pk.FallDown(msg, help=False, noexit=pk.main_loop)
       crashes = min(9, crashes+1)
 
