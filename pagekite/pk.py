@@ -470,105 +470,6 @@ class HttpUiThread(threading.Thread):
     logging.LogDebug('HttpUiThread: done')
 
 
-class UiCommunicator(threading.Thread):
-  """Listen for interactive commands."""
-
-  def __init__(self, config, conns):
-    threading.Thread.__init__(self)
-    self.looping = False
-    self.config = config
-    self.conns = conns
-    logging.LogDebug('UiComm: Created')
-
-  def run(self):
-    self.looping = True
-    while self.looping:
-      if not self.config or not self.config.ui.ALLOWS_INPUT:
-        time.sleep(1)
-        continue
-
-      line = ''
-      try:
-        i, o, e = select.select([self.config.ui.rfile], [], [], 1)
-        if not i: continue
-      except:
-        pass
-
-      if self.config:
-        line = self.config.ui.rfile.readline().strip()
-        if line:
-          self.Parse(line)
-
-    logging.LogDebug('UiCommunicator: done')
-
-  def Reconnect(self):
-    if self.config.tunnel_manager:
-      self.config.ui.Status('reconfig')
-      self.config.tunnel_manager.CloseTunnels()
-      self.config.tunnel_manager.HurryUp()
-
-  def Parse(self, line):
-    try:
-      command, args = line.split(': ', 1)
-      logging.LogDebug('UiComm: %s(%s)' % (command, args))
-
-      if args.lower() == 'none': args = None
-      elif args.lower() == 'true': args = True
-      elif args.lower() == 'false': args = False
-
-      if command == 'exit':
-        self.config.keep_looping = False
-        self.config.main_loop = False
-      elif command == 'restart':
-        self.config.keep_looping = False
-        self.config.main_loop = True
-      elif command == 'config':
-        command = 'change settings'
-        self.config.Configure(['--%s' % args])
-      elif command == 'enablekite':
-        command = 'enable kite'
-        if args and args in self.config.backends:
-          self.config.backends[args][BE_STATUS] = BE_STATUS_UNKNOWN
-          self.Reconnect()
-        else:
-          raise Exception('No such kite: %s' % args)
-      elif command == 'disablekite':
-        command = 'disable kite'
-        if args and args in self.config.backends:
-          self.config.backends[args][BE_STATUS] = BE_STATUS_DISABLED
-          self.Reconnect()
-        else:
-          raise Exception('No such kite: %s' % args)
-      elif command == 'delkite':
-        command = 'remove kite'
-        if args and args in self.config.backends:
-          del self.config.backends[args]
-          self.Reconnect()
-        else:
-          raise Exception('No such kite: %s' % args)
-      elif command == 'save':
-        command = 'save configuration'
-        self.config.SaveUserConfig(quiet=(args == 'quietly'))
-
-    except ValueError:
-      logging.LogDebug('UiComm: bogus: %s' % line)
-    except SystemExit:
-      self.config.keep_looping = False
-      self.config.main_loop = False
-    except:
-      logging.LogDebug('UiComm: failed %s' % (sys.exc_info(), ))
-      self.config.ui.Tell(['Oops!', '', 'Failed to %s, details:' % command,
-                           '', '%s' % (sys.exc_info(), )], error=True)
-
-  def quit(self):
-    self.looping = False
-    self.conns = None
-    try:
-      self.join()
-    except RuntimeError:
-      pass
-
-
 class TunnelManager(threading.Thread):
   """Create new tunnels as necessary or kill idle ones."""
 
@@ -1316,8 +1217,6 @@ class PageKite(object):
       self.conns.auth.quit()
     if self.ui_httpd:
       self.ui_httpd.quit()
-    if self.ui_comm:
-      self.ui_comm.quit()
     if self.tunnel_manager:
       self.tunnel_manager.quit()
     self.keep_looping = False
@@ -1327,7 +1226,7 @@ class PageKite(object):
         fd.close()
       except (IOError, OSError, TypeError, AttributeError):
         pass
-    self.conns = self.ui_httpd = self.ui_comm = self.tunnel_manager = None
+    self.conns = self.ui_httpd = self.tunnel_manager = None
 
     try:
       os.dup2(sys.stderr.fileno(), sys.stdout.fileno())
@@ -2661,7 +2560,6 @@ class PageKite(object):
     self.conns.start()
     if self.ui_httpd: self.ui_httpd.start()
     if self.tunnel_manager: self.tunnel_manager.start()
-    if self.ui_comm: self.ui_comm.start()
 
     epoll, mypoll = self.CreatePollObject()
     self.last_barf = self.last_loop = time.time()
@@ -2732,9 +2630,6 @@ class PageKite(object):
     logging.LogInfo('Collecting entropy for a secure secret.')
     globalSecret()
     self.ui.Status('startup', message='Starting up...')
-
-    # Create the UI Communicator
-    self.ui_comm = UiCommunicator(self, conns)
 
     try:
 
@@ -2821,8 +2716,6 @@ class PageKite(object):
     logging.Log([('stopping', 'pagekite.py')])
     if self.ui_httpd:
       self.ui_httpd.quit()
-    if self.ui_comm:
-      self.ui_comm.quit()
     if self.tunnel_manager:
       self.tunnel_manager.quit()
     if self.conns:
