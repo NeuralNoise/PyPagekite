@@ -2768,7 +2768,8 @@ class PageKite(object):
 
     self.servers = servers_all.values()
     self.servers_preferred = servers_pref.values()
-    logging.LogDebug('Preferred: %s' % ', '.join(self.servers_preferred))
+    if (len(self.servers_preferred) > 0):
+        logging.LogDebug('Preferred: %s' % ', '.join(self.servers_preferred))
 
   def ConnectFrontend(self, conns, server):
     self.ui.Status('connect', color=self.ui.YELLOW,
@@ -2816,7 +2817,8 @@ class PageKite(object):
       self.servers = []
 
     if not self.servers:
-      logging.LogDebug('Not sure which servers to contact, making no changes.')
+      if not self.isfrontend: 
+          logging.LogDebug('Not sure which servers to contact, making no changes.')
       return 0, 0
 
     for server in self.servers:
