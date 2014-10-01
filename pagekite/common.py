@@ -36,7 +36,6 @@ MAGIC_UUID = '%x-%x-%s' % (random.randint(0, 0xfffffff), time.time(), APPVER)
 
 SERVICE_PROVIDER = 'PageKite.net'
 SERVICE_DOMAINS = ('pagekite.me', '302.is', 'testing.is', 'kazz.am')
-SERVICE_DOMAINS_SIGNUP = ('pagekite.me',)
 SERVICE_XMLRPC = 'http://pagekite.net/xmlrpc/'
 SERVICE_TOS_URL = 'https://pagekite.net/humans.txt'
 SERVICE_CERTS = ['b5p.us', 'frontends.b5p.us', 'pagekite.net', 'pagekite.me',

@@ -57,8 +57,7 @@ OPT_FLAGS = 'o:O:S:H:P:X:L:ZI:fA:R:h:p:aD:U:NE:'
 OPT_ARGS = ['noloop', 'clean', 'nopyopenssl', 'nossl', 'nocrashreport',
             'help', 'settings',
             'optfile=', 'optdir=', 'savefile=',
-            'friendly', 
-            'signup', 'list', 'add', 'only', 'disable', 'remove', 'save',
+            'list', 'add', 'only', 'disable', 'remove', 'save',
             'service_xmlrpc=', 'controlpanel', 'controlpass',
             'httpd=', 'pemfile=', 'httppass=', 'errorurl=', 'webpath=',
             'logfile=', 'daemonize', 'nodaemonize', 'runas=', 'pidfile=',
@@ -547,12 +546,6 @@ class UiCommunicator(threading.Thread):
           self.Reconnect()
         else:
           raise Exception('No such kite: %s' % args)
-      elif command == 'addkite':
-        command = 'create new kite'
-        args = (args or '').strip().split() or ['']
-        if self.config.RegisterNewKite(kitename=args[0],
-                                       autoconfigure=True, ask_be=True):
-          self.Reconnect()
       elif command == 'save':
         command = 'save configuration'
         self.config.SaveUserConfig(quiet=(args == 'quietly'))
@@ -1915,8 +1908,7 @@ class PageKite(object):
         self.SetLocalSettings([int(p) for p in arg.split(',')])
         if not 'localhost' in args: args.append('localhost')
       elif opt == '--defaults': self.SetServiceDefaults()
-      elif opt in ('--clean', '--nopyopenssl', '--nossl', '--settings',
-                   '--signup', '--friendly'):
+      elif opt in ('--clean', '--nopyopenssl', '--nossl', '--settings'):
         # These are handled outside the main loop, we just ignore them.
         pass
       elif opt in ('--webroot', '--webaccess', '--webindexes',
@@ -2112,23 +2104,7 @@ class PageKite(object):
         raise ConfigError('Not valid domain: %s' % domain)
 
     for domain in need_registration:
-      result = self.RegisterNewKite(kitename=domain)
-      if not result:
-        raise ConfigError("Not sure what to do with %s, giving up." % domain)
-
-      # Update the secrets...
-      rdom, rsecret = result
-      for be in just_these_backends.values():
-        if be[BE_DOMAIN] == domain: be[BE_SECRET] = rsecret
-
-      # Update the kite names themselves, if they changed.
-      if rdom != domain:
-        for bid in just_these_backends.keys():
-          nbid = bid.replace(':'+domain, ':'+rdom)
-          if nbid != bid:
-            just_these_backends[nbid] = just_these_backends[bid]
-            just_these_backends[nbid][BE_DOMAIN] = rdom
-            del just_these_backends[bid]
+      raise ConfigError("Not sure what to do with %s, giving up." % domain)
 
     if just_these_backends.keys():
       if self.kite_add:
@@ -2197,372 +2173,6 @@ class PageKite(object):
 
     return (secret, is_subdomain_of, is_service_domain,
             is_cname_for, is_cname_ready)
-
-  def RegisterNewKite(self, kitename=None, first=False,
-                            ask_be=False, autoconfigure=False):
-    registered = False
-    if kitename:
-      (secret, is_subdomain_of, is_service_domain,
-       is_cname_for, is_cname_ready) = self._KiteInfo(kitename)
-      if secret:
-        self.ui.StartWizard('Updating kite: %s' % kitename)
-        registered = True
-      else:
-        self.ui.StartWizard('Creating kite: %s' % kitename)
-    else:
-      if first:
-        self.ui.StartWizard('Create your first kite')
-      else:
-        self.ui.StartWizard('Creating a new kite')
-      is_subdomain_of = is_service_domain = False
-      is_cname_for = is_cname_ready = False
-
-    # This is the default...
-    be_specs = ['http:%s:localhost:80']
-
-    service = self.GetServiceXmlRpc()
-    service_accounts = {}
-    if self.kitename and self.kitesecret:
-      service_accounts[self.kitename] = self.kitesecret
-
-    for be in self.backends.values():
-      if SERVICE_DOMAIN_RE.search(be[BE_DOMAIN]):
-        if be[BE_DOMAIN] == is_cname_for:
-          is_cname_ready = True
-        if be[BE_SECRET] not in service_accounts.values():
-          service_accounts[be[BE_DOMAIN]] = be[BE_SECRET]
-    service_account_list = service_accounts.keys()
-
-    if registered:
-      state = ['choose_backends']
-    if service_account_list:
-      state = ['choose_kite_account']
-    else:
-      state = ['use_service_question']
-    history = []
-
-    def Goto(goto, back_skips_current=False):
-      if not back_skips_current: history.append(state[0])
-      state[0] = goto
-    def Back():
-      if history:
-        state[0] = history.pop(-1)
-      else:
-        Goto('abort')
-
-    register = is_cname_for or kitename
-    account = email = None
-    while 'end' not in state:
-      try:
-        if 'use_service_question' in state:
-          ch = self.ui.AskYesNo('Use the PageKite.net service?',
-                                pre=['<b>Welcome to PageKite!</b>',
-                                     '',
-                                     'Please answer a few quick questions to',
-                                     'create your first kite.',
-                                     '',
-                                     'By continuing, you agree to play nice',
-                                     'and abide by the Terms of Service at:',
-                                     '- <a href="%s">%s</a>' % (SERVICE_TOS_URL, SERVICE_TOS_URL)],
-                                default=True, back=-1, no='Abort')
-          if ch is True:
-            self.SetServiceDefaults(clobber=False)
-            if not kitename:
-              Goto('service_signup_email')
-            elif is_cname_for and is_cname_ready:
-              register = kitename
-              Goto('service_signup_email')
-            elif is_service_domain:
-              register = is_cname_for or kitename
-              if is_subdomain_of:
-                # FIXME: Shut up if parent is already in local config!
-                Goto('service_signup_is_subdomain')
-              else:
-                Goto('service_signup_email')
-            else:
-              Goto('service_signup_bad_domain')
-          else:
-            Goto('manual_abort')
-
-        elif 'service_login_email' in state:
-          p = None
-          while not email or not p:
-            (email, p) = self.ui.AskLogin('Please log on ...', pre=[
-                                            'By logging on to %s,' % self.service_provider,
-                                            'you will be able to use this kite',
-                                            'with your pre-existing account.'
-                                          ], email=email, back=(email, False))
-            if email and p:
-              try:
-                self.ui.Working('Logging on to your account')
-                service_accounts[email] = service.getSharedSecret(email, p)
-                # FIXME: Should get the list of preconfigured kites via. RPC
-                #        so we don't try to create something that already
-                #        exists?  Or should the RPC not just not complain?
-                account = email
-                Goto('create_kite')
-              except:
-                email = p = None
-                self.ui.Tell(['Login failed! Try again?'], error=True)
-            if p is False:
-              Back()
-              break
-
-        elif ('service_signup_is_subdomain' in state):
-          ch = self.ui.AskYesNo('Use this name?',
-                                pre=['%s is a sub-domain.' % kitename, '',
-                                     '<b>NOTE:</b> This process will fail if you',
-                                     'have not already registered the parent',
-                                     'domain, %s.' % is_subdomain_of],
-                                default=True, back=-1)
-          if ch is True:
-            if account:
-              Goto('create_kite')
-            elif email:
-              Goto('service_signup')
-            else:
-              Goto('service_signup_email')
-          elif ch is False:
-            Goto('service_signup_kitename')
-          else:
-            Back()
-
-        elif ('service_signup_bad_domain' in state or
-              'service_login_bad_domain' in state):
-          if is_cname_for:
-            alternate = is_cname_for
-            ch = self.ui.AskYesNo('Create both?',
-                                  pre=['%s is a CNAME for %s.' % (kitename, is_cname_for)],
-                                  default=True, back=-1)
-          else:
-            alternate = kitename.split('.')[-2]+'.'+SERVICE_DOMAINS[0]
-            ch = self.ui.AskYesNo('Try to create %s instead?' % alternate,
-                                  pre=['Sorry, %s is not a valid service domain.' % kitename],
-                                  default=True, back=-1)
-          if ch is True:
-            register = alternate
-            Goto(state[0].replace('bad_domain', 'email'))
-          elif ch is False:
-            register = alternate = kitename = False
-            Goto('service_signup_kitename', back_skips_current=True)
-          else:
-            Back()
-
-        elif 'service_signup_email' in state:
-          email = self.ui.AskEmail('<b>What is your e-mail address?</b>',
-                                   pre=['We need to be able to contact you',
-                                        'now and then with news about the',
-                                        'service and your account.',
-                                        '',
-                                        'Your details will be kept private.'],
-                                   back=False)
-          if email and register:
-            Goto('service_signup')
-          elif email:
-            Goto('service_signup_kitename')
-          else:
-            Back()
-
-        elif ('service_signup_kitename' in state or
-              'service_ask_kitename' in state):
-          try:
-            self.ui.Working('Fetching list of available domains')
-            domains = service.getAvailableDomains('', '')
-          except:
-            domains = ['.%s' % x for x in SERVICE_DOMAINS_SIGNUP]
-
-          ch = self.ui.AskKiteName(domains, 'Name this kite:',
-                                 pre=['Your kite name becomes the public name',
-                                      'of your personal server or web-site.',
-                                      '',
-                                      'Names are provided on a first-come,',
-                                      'first-serve basis. You can create more',
-                                      'kites with different names later on.'],
-                                 back=False)
-          if ch:
-            kitename = register = ch
-            (secret, is_subdomain_of, is_service_domain,
-             is_cname_for, is_cname_ready) = self._KiteInfo(ch)
-            if secret:
-              self.ui.StartWizard('Updating kite: %s' % kitename)
-              registered = True
-            else:
-              self.ui.StartWizard('Creating kite: %s' % kitename)
-            Goto('choose_backends')
-          else:
-            Back()
-
-        elif 'choose_backends' in state:
-          if ask_be and autoconfigure:
-            skip = False
-            ch = self.ui.AskBackends(kitename, ['http'], ['80'], [],
-                                     'Enable which service?', back=False, pre=[
-                                  'You control which of your files or servers',
-                                  'PageKite exposes to the Internet. ',
-                                     ], default=','.join(be_specs))
-            if ch:
-              be_specs = ch.split(',')
-          else:
-            skip = ch = True
-
-          if ch:
-            if registered:
-              Goto('create_kite', back_skips_current=skip)
-            elif is_subdomain_of:
-              Goto('service_signup_is_subdomain', back_skips_current=skip)
-            elif account:
-              Goto('create_kite', back_skips_current=skip)
-            elif email:
-              Goto('service_signup', back_skips_current=skip)
-            else:
-              Goto('service_signup_email', back_skips_current=skip)
-          else:
-            Back()
-
-        elif 'service_signup' in state:
-          try:
-            self.ui.Working('Signing up')
-            details = service.signUp(email, register)
-            if details.get('secret', False):
-              service_accounts[email] = details['secret']
-              self.ui.AskYesNo('Continue?', pre=[
-                '<b>Your kite is ready to fly!</b>',
-                '',
-                '<b>Note:</b> To complete the signup process,',
-                'check your e-mail (and spam folders) for',
-                'activation instructions. You can give',
-                'PageKite a try first, but un-activated',
-                'accounts are disabled after %d minutes.' % details['timeout'],
-              ], yes='Finish', no=False, default=True)
-              self.ui.EndWizard()
-              if autoconfigure:
-                for be_spec in be_specs:
-                  self.backends.update(self.ArgToBackendSpecs(
-                                                    be_spec % register,
-                                                    secret=details['secret']))
-              self.added_kites = True
-              return (register, details['secret'])
-            else:
-              error = details.get('error', 'unknown')
-          except IOError:
-            error = 'network'
-          except:
-            error = '%s' % (sys.exc_info(), )
-
-          if error == 'pleaselogin':
-            self.ui.ExplainError(error, 'Signup failed!',
-                                 subject=email)
-            Goto('service_login_email', back_skips_current=True)
-          elif error == 'email':
-            self.ui.ExplainError(error, 'Signup failed!',
-                                 subject=register)
-            Goto('service_login_email', back_skips_current=True)
-          elif error in ('domain', 'domaintaken', 'subdomain'):
-            self.ui.ExplainError(error, 'Invalid domain!',
-                                 subject=register)
-            register, kitename = None, None
-            Goto('service_signup_kitename', back_skips_current=True)
-          elif error == 'network':
-            self.ui.ExplainError(error, 'Network error!',
-                                 subject=self.service_provider)
-            Goto('service_signup', back_skips_current=True)
-          else:
-            self.ui.ExplainError(error, 'Unknown problem!')
-            print 'FIXME!  Error is %s' % error
-            Goto('abort')
-
-        elif 'choose_kite_account' in state:
-          choices = service_account_list[:]
-          choices.append('Use another service provider')
-          justdoit = (len(service_account_list) == 1)
-          if justdoit:
-            ch = 1
-          else:
-            ch = self.ui.AskMultipleChoice(choices, 'Register with',
-                                       pre=['Choose an account for this kite:'],
-                                           default=1)
-          account = choices[ch-1]
-          if ch == len(choices):
-            Goto('manual_abort')
-          elif kitename:
-            Goto('choose_backends', back_skips_current=justdoit)
-          else:
-            Goto('service_ask_kitename', back_skips_current=justdoit)
-
-        elif 'create_kite' in state:
-          secret = service_accounts[account]
-          subject = None
-          cfgs = {}
-          result = {}
-          error = None
-          try:
-            if registered and kitename and secret:
-              pass
-            elif is_cname_for and is_cname_ready:
-              self.ui.Working('Creating your kite')
-              subject = kitename
-              result = service.addCnameKite(account, secret, kitename)
-              time.sleep(2) # Give the service side a moment to replicate...
-            else:
-              self.ui.Working('Creating your kite')
-              subject = register
-              result = service.addKite(account, secret, register)
-              time.sleep(2) # Give the service side a moment to replicate...
-              for be_spec in be_specs:
-                cfgs.update(self.ArgToBackendSpecs(be_spec % register,
-                                                   secret=secret))
-              if is_cname_for == register and 'error' not in result:
-                subject = kitename
-                result.update(service.addCnameKite(account, secret, kitename))
-
-            error = result.get('error', None)
-            if not error:
-              for be_spec in be_specs:
-                cfgs.update(self.ArgToBackendSpecs(be_spec % kitename,
-                                                   secret=secret))
-          except Exception, e:
-            error = '%s' % e
-
-          if error:
-            self.ui.ExplainError(error, 'Kite creation failed!',
-                                 subject=subject)
-            Goto('abort')
-          else:
-            self.ui.Tell(['Success!'])
-            self.ui.EndWizard()
-            if autoconfigure: self.backends.update(cfgs)
-            self.added_kites = True
-            return (register or kitename, secret)
-
-        elif 'manual_abort' in state:
-          if self.ui.Tell(['Aborted!', '',
-            'Please manually add information about your',
-            'kites and front-ends to the configuration file:',
-            '', ' %s' % self.rcfile],
-                          error=True, back=False) is False:
-            Back()
-          else:
-            self.ui.EndWizard()
-            if self.ui.ALLOWS_INPUT: return None
-            sys.exit(0)
-
-        elif 'abort' in state:
-          self.ui.EndWizard()
-          if self.ui.ALLOWS_INPUT: return None
-          sys.exit(0)
-
-        else:
-          raise ConfigError('Unknown state: %s' % state)
-
-      except KeyboardInterrupt:
-        sys.stderr.write('\n')
-        if history:
-          Back()
-        else:
-          raise KeyboardInterrupt()
-
-    self.ui.EndWizard()
-    return None
 
   def CheckConfig(self):
     if self.ui_sspec: self.BindUiSspec()
@@ -3276,20 +2886,11 @@ def Configure(pk):
     if os.path.exists(pk.rcfile):
       pk.ConfigureFromFile()
 
-  friendly_mode = (('--friendly' in sys.argv) or
-                   (sys.platform[:3] in ('win', 'os2', 'dar')))
-
   pk.Configure(sys.argv[1:])
 
   if '--settings' in sys.argv:
     pk.PrintSettings(safe=True)
     sys.exit(0)
-
-  if not pk.backends.keys() and (not pk.kitesecret or not pk.kitename):
-    if '--signup' in sys.argv or friendly_mode:
-      pk.RegisterNewKite(autoconfigure=True, first=True)
-    if friendly_mode:
-      pk.save = True
 
   pk.CheckConfig()
 

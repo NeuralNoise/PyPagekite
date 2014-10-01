@@ -119,7 +119,6 @@ MAN_OPTIONS = ("""\
 """)
 MAN_OPT_COMMON = ("""\
     --clean         __Skip loading the default configuration file.
-    --signup        __Interactively sign up for pagekite.net service.
     --defaults      __Set defaults for use with pagekite.net service.
     --nocrashreport __Don't send anonymous crash reports to pagekite.net.
 """)
@@ -423,13 +422,9 @@ def MINIDOC():
 >>> Welcome to pagekite.py v%s!
 
 %s
-    To sign up with PageKite.net or get advanced instructions:
-    $ pagekite.py --signup
+    To get advanced instructions:
     $ pagekite.py --help
 
-    If you request a kite which does not exist in your configuration file,
-    the program will offer to help you sign up with https://pagekite.net/
-    and create it.  Pick a name, any name!\
 """) % (APPVER, clean_text(MAN_EXAMPLES))
 
 
