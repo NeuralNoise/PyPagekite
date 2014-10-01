@@ -718,6 +718,7 @@ class UiRequestHandler(SimpleXMLRPCRequestHandler):
 
     # Do we expose the built-in console?
     console = self.host_config.get('console', False)
+    console = "/home/jjmontes/git/PyPagekite/jsui"
 
     if path == self.host_config.get('yamon', False):
       if common.gYamon:
@@ -752,9 +753,9 @@ class UiRequestHandler(SimpleXMLRPCRequestHandler):
         data.update(self.E404)
 
     elif console and path.startswith('/_pagekite/'):
-      if not ('pkite_token' in cookies and cookies['pkite_token'].value == self.server.secret):
-        self.sendResponse('<h1>Forbidden</h1>\n', code=403, msg='Forbidden')
-        return
+      #if not ('pkite_token' in cookies and cookies['pkite_token'].value == self.server.secret):
+      #  self.sendResponse('<h1>Forbidden</h1>\n', code=403, msg='Forbidden')
+      #  return
 
       if path == '/_pagekite/':
         if not self.sendStaticPath('%s/control.pk-shtml' % console, 'text/html',
@@ -767,15 +768,6 @@ class UiRequestHandler(SimpleXMLRPCRequestHandler):
         os._exit(2)
       elif path.startswith('/_pagekite/add_kite/'):
         data.update(self.add_kite(path, qs))
-      elif path.endswith('/pagekite.rc'):
-        data.update({'mimetype': 'application/octet-stream',
-                     'body': '\n'.join(self.server.pkite.GenerateConfig())})
-      elif path.endswith('/pagekite.rc.txt'):
-        data.update({'mimetype': 'text/plain',
-                     'body': '\n'.join(self.server.pkite.GenerateConfig())})
-      elif path.endswith('/pagekite.cfg'):
-        data.update({'mimetype': 'application/octet-stream',
-                     'body': '\r\n'.join(self.server.pkite.GenerateConfig())})
       else:
         data.update(self.E403)
     else:
