@@ -54,7 +54,7 @@ import logging
 
 
 OPT_FLAGS = 'o:O:S:H:P:X:L:ZI:fA:R:h:p:aD:U:NE:'
-OPT_ARGS = ['noloop', 'clean', 'nopyopenssl', 'nossl', 'nocrashreport',
+OPT_ARGS = ['noloop', 'clean', 'nopyopenssl', 'nossl',
             'help', 'settings',
             'optfile=', 'optdir=', 'savefile=',
             'list', 'add', 'only', 'disable', 'remove', 'save',

@@ -120,7 +120,6 @@ MAN_OPTIONS = ("""\
 MAN_OPT_COMMON = ("""\
     --clean         __Skip loading the default configuration file.
     --defaults      __Set defaults for use with pagekite.net service.
-    --nocrashreport __Don't send anonymous crash reports to pagekite.net.
 """)
 MAN_OPT_BACKEND = ("""\
     --nullui        __Silent UI for scripting. Assumes Yes on all questions.
