@@ -55,9 +55,9 @@ import logging
 
 OPT_FLAGS = 'o:O:S:H:P:X:L:ZI:fA:R:h:p:aD:U:NE:'
 OPT_ARGS = ['noloop', 'clean', 'nopyopenssl', 'nossl', 'nocrashreport',
-            'nullui', 'remoteui', 'uiport=', 'help', 'settings',
+            'help', 'settings',
             'optfile=', 'optdir=', 'savefile=',
-            'friendly', 'shell',
+            'friendly', 
             'signup', 'list', 'add', 'only', 'disable', 'remove', 'save',
             'service_xmlrpc=', 'controlpanel', 'controlpass',
             'httpd=', 'pemfile=', 'httppass=', 'errorurl=', 'webpath=',
@@ -883,12 +883,8 @@ class PageKite(object):
     self.added_kites = False
     self.ui_wfile = sys.stderr
     self.ui_rfile = sys.stdin
-    self.ui_port = None
-    self.ui_conn = None
-    self.ui_comm = None
 
     self.save = 0
-    self.shell = False
     self.kite_add = False
     self.kite_only = False
     self.kite_disable = False
@@ -1683,8 +1679,6 @@ class PageKite(object):
       elif opt in ('-S', '--savefile'):
         if self.savefile: raise ConfigError('Multiple save-files!')
         self.savefile = arg
-      elif opt == '--shell':
-        self.shell = True
       elif opt == '--save':
         self.save = True
       elif opt == '--only':
@@ -1910,11 +1904,6 @@ class PageKite(object):
       elif opt == '--nodaemonize': self.daemonize = False
       elif opt == '--noall': self.require_all = False
       elif opt == '--nozchunks': self.disable_zchunks = True
-      elif opt == '--nullui': self.ui = NullUi()
-      elif opt == '--remoteui':
-        import pagekite.ui.remote
-        self.ui = pagekite.ui.remote.RemoteUi()
-      elif opt == '--uiport': self.ui_port = int(arg)
       elif opt == '--sslzlib': self.enable_sslzlib = True
       elif opt == '--watch':
         self.watch_level[0] = int(arg)
@@ -3149,10 +3138,6 @@ class PageKite(object):
             Listener(self.server_host, port, conns,
                      connclass=RawConn, acl=self.accept_acl_file)
 
-      if self.ui_port:
-        Listener('127.0.0.1', self.ui_port, conns,
-                 connclass=UiConn, acl=self.accept_acl_file)
-
       # Create the Tunnel Manager
       self.tunnel_manager = TunnelManager(self, conns)
 
@@ -3242,7 +3227,6 @@ def Main(pagekite, configure, uiclass=NullUi,
                               progname=None, appver=APPVER,
                               http_handler=None, http_server=None):
   crashes = 0
-  shell_mode = None
   while True:
     ui = uiclass()
     logging.ResetLog()
@@ -3256,27 +3240,18 @@ def Main(pagekite, configure, uiclass=NullUi,
         except Exception, e:
           raise ConfigError(e)
 
-        shell_mode = shell_mode or pk.shell
-        if shell_mode is not True:
-          pk.Start()
+        # Start Pagekite
+        pk.Start()
 
       except (ConfigError, getopt.GetoptError), msg:
-        pk.FallDown(msg, help=(not shell_mode), noexit=shell_mode)
-        if shell_mode:
-          shell_mode = 'more'
+        pk.FallDown(msg, help=False, noexit=False)
 
       except KeyboardInterrupt, msg:
         pk.FallDown(None, help=False, noexit=True)
-        if shell_mode:
-          shell_mode = 'auto'
-        else:
-          return
+        return
 
     except SystemExit, status:
-      if shell_mode:
-        shell_mode = 'more'
-      else:
-        sys.exit(status)
+      sys.exit(status)
 
     except Exception, msg:
       # Close system
@@ -3284,56 +3259,12 @@ def Main(pagekite, configure, uiclass=NullUi,
       pk.FallDown(msg, help=False, noexit=pk.main_loop)
       crashes = min(9, crashes+1)
 
-    if shell_mode:
-      crashes = 0
-      try:
-        sys.argv[1:] = Shell(pk, ui, shell_mode)
-        shell_mode = 'more'
-      except (KeyboardInterrupt, IOError, OSError):
-        ui.Status('quitting')
-        print
-        return
-    elif not pk.main_loop:
+    if not pk.main_loop:
       return
 
     # Exponential fall-back.
     logging.LogDebug('Restarting in %d seconds...' % (2 ** crashes))
     time.sleep(2 ** crashes)
-
-
-def Shell(pk, ui, shell_mode):
-  import manual
-  try:
-    ui.Reset()
-    if shell_mode != 'more':
-      ui.StartWizard('The PageKite Shell')
-      pre = [
-        'Press ENTER to fly your kites or CTRL+C to quit.  Or, type some',
-        'arguments to and try other things.  Type `help` for help.'
-      ]
-    else:
-      pre = ''
-
-    prompt = os.path.basename(sys.argv[0])
-    while True:
-      rv = ui.AskQuestion(prompt, prompt='  $', back=False, pre=pre
-                          ).strip().split()
-      ui.EndWizard(quietly=True)
-      while rv and rv[0] in ('pagekite.py', prompt):
-        rv.pop(0)
-      if rv and rv[0] == 'help':
-        ui.welcome = '>>> ' + ui.WHITE + ' '.join(rv) + ui.NORM
-        ui.Tell(manual.HELP(rv[1:]).splitlines())
-        pre = []
-      elif rv and rv[0] == 'quit':
-        raise KeyboardInterrupt()
-      else:
-        if rv and rv[0] in OPT_ARGS:
-          rv[0] = '--'+rv[0]
-        return rv
-  finally:
-    ui.EndWizard(quietly=True)
-    print
 
 
 def Configure(pk):
@@ -3347,8 +3278,6 @@ def Configure(pk):
 
   friendly_mode = (('--friendly' in sys.argv) or
                    (sys.platform[:3] in ('win', 'os2', 'dar')))
-  if friendly_mode and sys.stdout.isatty():
-    pk.shell = (len(sys.argv) < 2) and 'auto'
 
   pk.Configure(sys.argv[1:])
 

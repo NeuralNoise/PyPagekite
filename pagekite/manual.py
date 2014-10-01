@@ -124,7 +124,6 @@ MAN_OPT_COMMON = ("""\
     --nocrashreport __Don't send anonymous crash reports to pagekite.net.
 """)
 MAN_OPT_BACKEND = ("""\
-    --shell         __Run PageKite in an interactive shell.
     --nullui        __Silent UI for scripting. Assumes Yes on all questions.
 
     --list          __List all configured kites.
@@ -373,10 +372,6 @@ MANUAL_TOC = (
   ('SH', 'Copyright and license', MAN_LICENSE),
 )
 
-HELP_SHELL = ("""\
-    Press ENTER to fly your kites, CTRL+C to quit or give some arguments to
-    accomplish a more specific task.
-""")
 HELP_KITES = ("""\
 """)
 HELP_TOC = (
@@ -410,8 +405,7 @@ def HELP(args):
     text = ''.join([
       'Type `help TOPIC` to to read about one of these topics:\n\n',
       ''.join(['  %-10.10s %s\n' % (n, t) for (n, t, x) in HELP_TOC]),
-      '\n',
-      HELP_SHELL
+      '\n'
     ])
   return unindent(clean_text(text))
 
