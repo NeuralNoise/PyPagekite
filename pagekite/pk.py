@@ -894,6 +894,8 @@ class PageKite(object):
     self.kite_only = False
     self.kite_disable = False
     self.kite_remove = False
+    
+    self.reloadfile = None
 
     # Searching for our configuration file!  We prefer the documented
     # 'standard' locations, but if nothing is found there and something local
@@ -1934,8 +1936,10 @@ class PageKite(object):
                    '--signup', '--friendly'):
         # These are handled outside the main loop, we just ignore them.
         pass
+      elif opt in ('--reloadfile'):
+          self.reloadfile = arg 
       elif opt in ('--webroot', '--webaccess', '--webindexes',
-                   '--noautosave', '--autosave', '--reloadfile',
+                   '--noautosave', '--autosave',
                    '--delete_backend'):
         # FIXME: These are deprecated, we should probably warn the user.
         pass
