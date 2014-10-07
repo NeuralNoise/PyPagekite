@@ -1,6 +1,6 @@
-# PageQuite.py #
+#  #
 
-PageQuite is a fork of `pagekite.py`, a fast and reliable tool to make 
+This is a version of `pagekite.py`, a fast and reliable tool to make 
 services visible to the public Internet.
 
 This fork aims to trim down the software to a minimal service that
