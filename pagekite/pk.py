@@ -1902,12 +1902,14 @@ class PageKite(object):
         for proto in protos.split(','):
           bid = '%s:%s' % (proto, domain)
           if bid in self.backends:
-            raise ConfigError("Same service/domain defined twice: %s" % bid)
+            #logging.LogDebug("Redefining domain: %s" % bid)
+            self.backends[bid][BE_SECRET] = secret        
           self.backends[bid] = BE_NONE[:]
           self.backends[bid][BE_PROTO] = proto
           self.backends[bid][BE_DOMAIN] = domain
           self.backends[bid][BE_SECRET] = secret
           self.backends[bid][BE_STATUS] = BE_STATUS_UNKNOWN
+          # TODO: Remove removed backends
 
       elif opt == '--insecure': self.insecure = True
       elif opt == '--noprobes': self.no_probes = True
@@ -3187,13 +3189,18 @@ class PageKite(object):
     logging.FlushLogMemory()
 
     # Set up SIGHUP handler.
-    if self.logfile:
+    if self.logfile or self.reloadfile:
       try:
         import signal
         def reopen(x,y):
           if self.logfile:
             self.LogTo(self.logfile, close_all=False)
             logging.LogDebug('SIGHUP received, reopening: %s' % self.logfile)
+          if self.reloadfile:
+            logging.LogDebug('SIGHUP received, reloading: %s' % self.reloadfile)
+            print 'SIGHUP received, reloading: %s' % self.reloadfile
+            self.ConfigureFromFile(self.reloadfile)
+
         signal.signal(signal.SIGHUP, reopen)
       except Exception:
         logging.LogError('Warning: signal handler unavailable, logrotate will not work.')
