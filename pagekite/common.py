@@ -24,7 +24,7 @@ import random
 import time
 
 PROTOVER = '0.8'
-APPVER = '0.5.6d+github'
+APPVER = '0.5.6-stripped'
 AUTHOR = 'Bjarni Runar Einarsson, http://bre.klaki.net/'
 WWWHOME = 'http://pagekite.net/'
 LICENSE_URL = 'http://www.gnu.org/licenses/agpl.html'
@@ -98,8 +98,6 @@ BE_INACTIVE = (BE_STATUS_DISABLED, BE_STATUS_DISABLE_ONCE)
 BE_NONE = ['', '', None, None, None, '', BE_STATUS_UNKNOWN]
 
 DYNDNS = {
-  'pagekite.net': ('http://up.pagekite.net/'
-                   '?hostname=%(domain)s&myip=%(ips)s&sign=%(sign)s'),
   'beanstalks.net': ('http://up.b5p.us/'
                      '?hostname=%(domain)s&myip=%(ips)s&sign=%(sign)s'),
   'dyndns.org': ('https://%(user)s:%(pass)s@members.dyndns.org'

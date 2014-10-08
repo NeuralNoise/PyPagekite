@@ -13,11 +13,11 @@ except:
 
 setup(
     name="pagekite",
-    version=APPVER.replace('github', 'dev%d' % (120*int(time.time()/120))),
+    version=APPVER,
     license="AGPLv3+",
-    author="Bjarni R. Einarsson",
-    author_email="bre@pagekite.net",
-    url="http://pagekite.org/",
+    author="Various",
+    author_email="jjmontes@gmail.com",
+    url="",
     description="""PageKite makes localhost servers visible to the world.""",
     long_description="""\
 PageKite is a system for running publicly visible servers (generally
@@ -33,6 +33,6 @@ Any other TCP-based service, including SSH and VNC, may be exposed
 as well to clients supporting HTTP Proxies.
 """,
    packages=['pagekite', 'pagekite.ui', 'pagekite.proto'],
-   scripts=['scripts/pagekite', 'scripts/lapcat'],
+   scripts=['scripts/pagekite'],
    install_requires=['SocksipyChain >= 2.0.12']
 )
