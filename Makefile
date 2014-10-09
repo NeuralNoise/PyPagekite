@@ -22,22 +22,21 @@ install:
 builddeb:
 	# create
 	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=$(BUILDIR) -k 
-    	
-	cd pagekite-$(VERSION)
 
 	# replacements
-	@sed -e "s/@VERSION@/$(VERSION)/g" < debian/control.in >debian/control
-	@sed -e "s/@VERSION@/$(VERSION)/g" < debian/copyright.in >debian/copyright
-	@sed -e "s/@VERSION@/$(VERSION)/g" -e "s/@DATE@/`date -R`/g" < debian/changelog.in >debian/changelog
-	@ln -fs ../etc/logrotate.d/pagekite.debian debian/pagekite.logrotate
-	@ln -fs ../etc/init.d/pagekite.debian debian/init.d	
+	@sed -e "s/@VERSION@/$(VERSION)/g" < pagekite-$(VERSION)/debian/control.in > pagekite-$(VERSION)/debian/control
+	@sed -e "s/@VERSION@/$(VERSION)/g" < pagekite-$(VERSION)/debian/copyright.in > pagekite-$(VERSION)/debian/copyright
+	@sed -e "s/@VERSION@/$(VERSION)/g" -e "s/@DATE@/`date -R`/g" < pagekite-$(VERSION)/debian/changelog.in > pagekite-$(VERSION)/debian/changelog
+	@ln -fs ../etc/logrotate.d/pagekite.debian pagekite-$(VERSION)/debian/pagekite.logrotate
+	@ln -fs ../etc/init.d/pagekite.debian pagekite-$(VERSION)/debian/init.d	
     
 	# build the package
-	dpkg-buildpackage -rfakeroot
+	mv pagekite-$(VERSION) $(BUILDIR)
+	cd $(BUILDIR)/pagekite-$(VERSION) ; dpkg-buildpackage -rfakeroot
 
 clean:
 	#$(PYTHON) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean
-	rm -rf build/ MANIFEST pagekite-$(VERSION) pagekite.egg-info
+	rm -rf build/ MANIFEST pagekite-$(VERSION)* pagekite.egg-info
 	find . -name '*.pyc' -delete
 
