@@ -1,0 +1,3 @@
+*.pyc
+/pagekite.egg-info
+/dist

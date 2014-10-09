@@ -1,2 +1,4 @@
 var/log/pagekite
 etc/pagekite.d
+etc/init.d
+etc/logrotate.d

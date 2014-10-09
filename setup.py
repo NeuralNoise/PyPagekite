@@ -16,7 +16,7 @@ setup(
     version=APPVER,
     license="AGPLv3+",
     author="Various",
-    author_email="jjmontes@gmail.com",
+    author_email="jjmontes@zentyal.com",
     url="",
     description="""PageKite makes localhost servers visible to the world.""",
     long_description="""\

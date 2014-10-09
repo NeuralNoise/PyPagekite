@@ -1,16 +1,16 @@
 Format: http://dep.debian.net/deps/dep5
-Upstream-Name: pagekite-@VERSION@
+Upstream-Name: pagekite-0.5.6
 Source: http://pagekite.net/pk/src/pagekite-@VERSION@.tar.gz
 
 Files: *
 Copyright: 
-           2013 Bjarni Runar Einarsson
+           2014 Zentyal
            2013 The Beanstalks Project ehf.
 License: AGPL-3+
  See the file COPYING, included with this distribution.
 
 Files: debian/*
-Copyright: 2013 PageKite Packaging Team <packages@pagekite.net>
+Copyright: 2014 Zentyal <jjmontes@zentyal.com>
 License: GPL-2+
  This package is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by

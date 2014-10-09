@@ -1,8 +1,8 @@
-pagekite-@VERSION@ (@VERSION@-0pagekite) unstable; urgency=low
+pagekite-@VERSION@ (@VERSION@) unstable; urgency=low
 
   * Automatic package build note.
 
- -- PageKite Packaging Team <packages@pagekite.net>  @DATE@
+ -- Jose Juan Montes <jjmontes@zentyal.com>  @DATE@
 
 pagekite-0.4.0 (0.4.0-0) unstable; urgency=low
 
