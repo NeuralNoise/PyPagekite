@@ -131,3 +131,5 @@ gYamon = None
 # Status of our buffers...
 buffered_bytes = [0]
 
+# pk
+pko = None

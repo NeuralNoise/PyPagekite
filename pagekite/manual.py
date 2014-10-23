@@ -231,6 +231,9 @@ MAN_OPT_FRONTEND = ("""\
             should be written to match IPv4 or IPv6 addresses.  If defined,
             access rules are checkd in order and if none matches, incoming
             connections will be rejected.
+            
+    --server_ns_update=server,zone,tsigname,tsigkey[,address]
+            Updates a nameserver adding and removing hosts as they connect.
 
     --tls_default</b>=<a>name</a> __
             Default name to use for SSL, if SNI (Server Name Indication)

@@ -3,6 +3,8 @@ These are the Connection classes, relatively high level classes that handle
 incoming or outgoing network connections.
 """
 ##############################################################################
+import pagekite
+
 LICENSE = """\
 This file is part of pagekite.py.
 Copyright 2010-2013, the Beanstalks Project ehf. and Bjarni Runar Einarsson
@@ -36,7 +38,6 @@ from filters import HttpSecurityFilter
 from selectables import *
 from parsers import *
 from proto import *
-
 
 class Tunnel(ChunkParser):
   """A Selectable representing a PageKite tunnel."""
@@ -200,6 +201,12 @@ class Tunnel(ChunkParser):
         proto, domain, srand = backend.split(':')
         self.Log([('BE', 'Live'), ('proto', proto), ('domain', domain)] + logi)
         self.conns.Tunnel(proto, domain, self)
+
+        # Update DNS if necessary 
+        if common.pko.dnsclient:
+            self.LogDebug("Updating DNS for: %s" % domain)
+            common.pko.dnsclient.update_async (domain)
+        
       if not ok:
         if self.server_info[self.S_ADD_KITES] and not bad:
           self.LogDebug('No tunnels configured, idling...')

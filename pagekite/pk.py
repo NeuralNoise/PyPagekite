@@ -46,12 +46,14 @@ import SocketServer
 from CGIHTTPServer import CGIHTTPRequestHandler
 from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 import Cookie
+from pagekite.dnsclient import DnsClient
 
 from compat import *
 from common import *
+import pagekite.common as common
+
 import compat
 import logging
-
 
 OPT_FLAGS = 'o:O:S:H:P:X:L:ZI:fA:R:h:p:aD:U:NE:'
 OPT_ARGS = ['noloop', 'clean', 'nopyopenssl', 'nossl',
@@ -76,6 +78,7 @@ OPT_ARGS = ['noloop', 'clean', 'nopyopenssl', 'nossl',
             'torify=', 'socksify=', 'proxy=', 'noproxy',
             'new', 'all', 'noall', 'dyndns=', 'nozchunks', 'sslzlib',
             'buffers=', 'noprobes', 'debugio', 'watch=',
+            'server_ns_update=',
             # DEPRECATED:
             'reloadfile=', 'autosave', 'noautosave', 'webroot=',
             'webaccess=', 'webindexes=', 'delete_backend=']
@@ -784,6 +787,8 @@ class PageKite(object):
     self.kite_remove = False
     
     self.reloadfile = None
+    self.server_ns_update = None
+    self.dnsclient = None
 
     # Searching for our configuration file!  We prefer the documented
     # 'standard' locations, but if nothing is found there and something local
@@ -1815,6 +1820,8 @@ class PageKite(object):
         pass
       elif opt in ('--reloadfile'):
           self.reloadfile = arg 
+      elif opt in ('--server_ns_update'):
+          self.server_ns_update = arg
       elif opt in ('--webroot', '--webaccess', '--webindexes',
                    '--noautosave', '--autosave',
                    '--delete_backend'):
@@ -2690,6 +2697,13 @@ class PageKite(object):
       except Exception:
         logging.LogError('Warning: signal handler unavailable, logrotate will not work.')
 
+    # Initialize nameserver client
+    if (self.server_ns_update):
+        # Option: server_ns_update=server,zone,tsigname,tsigkey[,address]
+        options = self.server_ns_update.split(",")
+        logging.LogInfo('Configured to update nameserver %s for zone %s' % (options[0], options[1]))
+        self.dnsclient = DnsClient(self, options[0], options[1], options[2], options[3], options[4] if len(options)>4 else None)
+
     # Disable compression in OpenSSL
     if socks.HAVE_SSL and not self.enable_sslzlib:
       socks.DisableSSLCompression()
@@ -2745,7 +2759,11 @@ def Main(pagekite, configure, uiclass=NullUi,
   while True:
     ui = uiclass()
     logging.ResetLog()
+    
+
     pk = pagekite(ui=ui, http_handler=http_handler, http_server=http_server)
+
+    common.pko = pk
     try:
       try:
         try:

@@ -18,7 +18,9 @@ Depends: ${misc:Depends},
          daemon (>= 0.6),
          python (>= 2.3),
          python (<< 3.0),
-         python-openssl
+         python-openssl,
+         python-dns,
+         python-dnspython
 Description: Make localhost servers publicly visible.
  PageKite is a system for running publicly visible servers (generally
  web servers) on machines without a direct connection to the Internet,

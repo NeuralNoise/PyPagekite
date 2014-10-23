@@ -3,6 +3,7 @@ This is a class implementing a flexible metric-store and an HTTP
 thread for browsing the numbers.
 """
 ##############################################################################
+import logging
 LICENSE = """\
 This file is part of pagekite.py.
 Copyright 2010-2013, the Beanstalks Project ehf. and Bjarni Runar Einarsson
@@ -39,26 +40,74 @@ import dns.query
 import dns.tsigkeyring
 import dns.update
 
+from multiprocessing.pool import ThreadPool
+
 class DnsClient ():
+    """
+    Performs synchronous or asynchronous update to a nameserver.
+    This class assumes that hostnames belong to a given DNS zone, and
+    the domainname is removed from the hostname in order to perform the update.
+    """
     
-    def __init__(self, pagekite):
+    def __init__(self, pagekite, nshost, zone, tsigname, tsigkey, default_address = "127.0.0.1"):
     
         self.pagekite = pagekite
-        self.dnsclient = None
+        self.nshost = nshost
+        self.zone = zone
+        self.default_address = default_address       
+        
+        self.pool = ThreadPool(processes=6) 
+        
+        self.keyring = dns.tsigkeyring.from_text({
+            tsigname : tsigkey
+        })
+
+    def _hostname (self, fqdn):
+        
+        if (fqdn.endswith(self.zone)):
+            return fqdn[:len(fqdn)-len(self.zone)-1]
+        else:
+            return fqdn
+
+    def update_async (self, hostname, address = None):
+        self.pool.apply_async(self.update, [hostname, address])
 
     def update (self, hostname, address = None):
         
-        if address == None: address = self.pagekite.public_address
+        try:
         
-        #keyring = dns.tsigkeyring.from_text({
-        #    'host-example.' : 'XXXXXXXXXXXXXXXXXXXXXX=='
-        #})
+            if address == None: address = self.default_address
+                    
+            update = dns.update.Update(self.zone, keyring=self.keyring)
+            update.replace(self._hostname(hostname), 300, 'a', address)
+            response = dns.query.tcp(update, self.nshost)
+            
+        except Exception as e:
+            
+            logging.LogError("Could not update hostname %s: %s" % (hostname, e))
         
-        #update = dns.update.Update('dyn.test.example', keyring=keyring)
-        #update.replace('host', 300, 'a', address)
-        
-        #response = dns.query.tcp(update, '10.0.0.1')
+        #print response
     
-    def remove (self, hostname):
-        pass
+    def delete_async (self, hostname):
+        self.pool.apply_async(self.delete, [hostname])
+    
+    def delete (self, hostname):
+        
+        try:
+        
+            update = dns.update.Update(self.zone, keyring=self.keyring)
+            update.delete(self._hostname(hostname))
+            response = dns.query.tcp(update, self.nshost)
+        
+        except Exception as e:
+            
+            logging.LogError("Could not update hostname %s: %s" % (hostname, e))
+        
+        #print response
 
+if __name__ == "__main__":
+    
+    c = DnsClient('servip', 'zone', {})
+    c.delete_async ("hostname")
+    time.sleep(5)
+    

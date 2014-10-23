@@ -32,7 +32,6 @@ import pagekite.logging as logging
 import pagekite.compat as compat
 import pagekite.common as common
 
-
 def obfuIp(ip):
   quads = ('%s' % ip).replace(':', '.').split('.')
   return '~%s' % '.'.join([q for q in quads[-2:]])
@@ -151,16 +150,30 @@ class Selectable(object):
     self.peeked = self.zw = ''
     self.Die(discard_buffer=True)
     if close:
+        
       if self.fd:
         if logging.DEBUG_IO:
           self.LogDebug('Closing FD: %s' % self)
         self.fd.close()
+        
+      # Update DNS if necessary 
+      if hasattr(self, "backends"):
+        if common.pko.dnsclient:
+            try:
+                for b in self.backends:
+                    domain = b.split(':')[1]
+                    logging.LogDebug ("Deleting dynamic DNS name: %s" % domain)
+                    common.pko.dnsclient.delete_async(domain)
+            except Exception as e:
+                logging.LogError ("Could not delete dynamic DNS name: %s" % e)
+        
     self.fd = None
     if not self.dead:
       self.dead = True
       self.CountAs('selectables_dead')
       if close:
         self.LogTraffic(final=True)
+
 
   def __del__(self):
     try:
