@@ -785,7 +785,7 @@ class PageKite(object):
     self.kite_only = False
     self.kite_disable = False
     self.kite_remove = False
-    
+
     self.reloadfile = None
     self.server_ns_update = None
     self.dnsclient = None
@@ -1790,7 +1790,10 @@ class PageKite(object):
           bid = '%s:%s' % (proto, domain)
           if bid in self.backends:
             #logging.LogDebug("Redefining domain: %s" % bid)
-            self.backends[bid][BE_SECRET] = secret        
+            if (self.backends[bid][BE_SECRET] != secret):
+                logging.LogDebug("Redefining domain: %s" % bid)
+                self.backends[bid][BE_SECRET] = secret
+                self.backends[bid][BE_STATUS] = BE_STATUS_UNKNOWN
           self.backends[bid] = BE_NONE[:]
           self.backends[bid][BE_PROTO] = proto
           self.backends[bid][BE_DOMAIN] = domain
@@ -1819,7 +1822,7 @@ class PageKite(object):
         # These are handled outside the main loop, we just ignore them.
         pass
       elif opt in ('--reloadfile'):
-          self.reloadfile = arg 
+          self.reloadfile = arg
       elif opt in ('--server_ns_update'):
           self.server_ns_update = arg
       elif opt in ('--webroot', '--webaccess', '--webindexes',
@@ -2323,7 +2326,7 @@ class PageKite(object):
       self.servers = []
 
     if not self.servers:
-      if not self.isfrontend: 
+      if not self.isfrontend:
           logging.LogDebug('Not sure which servers to contact, making no changes.')
       return 0, 0
 
@@ -2690,8 +2693,11 @@ class PageKite(object):
             logging.LogDebug('SIGHUP received, reopening: %s' % self.logfile)
           if self.reloadfile:
             logging.LogDebug('SIGHUP received, reloading: %s' % self.reloadfile)
-            print 'SIGHUP received, reloading: %s' % self.reloadfile
-            self.ConfigureFromFile(self.reloadfile)
+            #print 'SIGHUP received, reloading: %s' % self.reloadfile
+            try:
+                self.ConfigureFromFile(self.reloadfile)
+            except Exception as e:
+                logging.LogError ('Could not reload config: %s' % e)
 
         signal.signal(signal.SIGHUP, reopen)
       except Exception:
@@ -2759,7 +2765,7 @@ def Main(pagekite, configure, uiclass=NullUi,
   while True:
     ui = uiclass()
     logging.ResetLog()
-    
+
 
     pk = pagekite(ui=ui, http_handler=http_handler, http_server=http_server)
 
